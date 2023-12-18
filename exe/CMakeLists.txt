@@ -3,7 +3,7 @@ project(DisSwitch)
 file(GLOB_RECURSE PROJECT_SRC RELATIVE
         "${CMAKE_CURRENT_SOURCE_DIR}"
         *.cpp
-        *.h
+        *.hpp
         )
 
 foreach(source IN LISTS PROJECT_SRC)
