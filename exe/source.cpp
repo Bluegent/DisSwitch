@@ -42,7 +42,6 @@ int main(int argc, const char* argv[])
         error("incorrect display count");
         return -1;
     }
-    helper.list();
     std::string command(argv[1]);
 
     if (command == cloneCommand)

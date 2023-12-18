@@ -67,14 +67,28 @@ void cloneDisplay3(CDSWrapper& cds, SDCWrapper& sdc)
     cds.reload();
 }
 
+int32_t getDisconnectTarget(CDSWrapper& cds)
+{
+    //if we are in clone mode we have to look for the correct Id
+    // idk how it works but usually the id's I've seen are 576** when a display is not cloned
+    const auto& info = cds.getInfo();
+    for (size_t i = 0; i < info.paths.size(); ++i)
+    {
+        if (info.paths[i].targetInfo.id >= 60000)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
 
 void disconnectDisplay3(CDSWrapper& cds, SDCWrapper& sdc)
 {
     int32_t disconnectTarget = 3;
+    std::cout << "Disconnecting display 3...\n";
     if (isinCloneMode(cds))
-    {
-        //if we are in clone mode we have to disconnect Path2, not Path3!!!
-        disconnectTarget = 2;
+    {      
+        disconnectTarget = getDisconnectTarget(cds);        
     }
     else if (!display3Connected(sdc))
     {
@@ -91,7 +105,7 @@ void extendDisplay3(CDSWrapper& cds, SDCWrapper& sdc)
     if (isinCloneMode(cds))
     {
         std::cout << "In clone mode, disconnecting display 3...\n";
-        cds.disconnect(2);
+        cds.disconnect(getDisconnectTarget(cds));
     }
     connectDisplay3(sdc);
     cds.reload();
@@ -102,6 +116,7 @@ void extendDisplay3(CDSWrapper& cds, SDCWrapper& sdc)
 void WinapiHelper::list()
 {
     sdc.printDisplayInfo();
+    cds.print();
 }
 
 void WinapiHelper::clone()
