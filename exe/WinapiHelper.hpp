@@ -6,8 +6,8 @@
 class WinapiHelper
 {
 private:
-    SDCWrapper cds;
-    CDSWrapper sdc;
+    SDCWrapper sdcw;
+    CDSWrapper cdsw;
 public:
     void list();
     void clone();
