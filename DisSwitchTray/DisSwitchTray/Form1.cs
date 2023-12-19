@@ -11,6 +11,8 @@ using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 
+
+//Disclaimer: I am not a C# programming and this whole project is anyway already barely held together with duct tape and toothpicks
 namespace DisSwitchTray
 {
     public class KeyTracker
@@ -27,13 +29,24 @@ namespace DisSwitchTray
             }
             if (add)
             {
+                if (keys.Contains(key))
+                {
+                    return;
+                }
                 keys.Add(key);
+                //Console.WriteLine("Press: " + key);
             }
             else
             {
+                if (!keys.Contains(key))
+                {
+                    return;
+                }
                 keys.Remove(key);
+                //Console.WriteLine("Release: " + key + " Count: "+ keys.Count);
                 if (keys.Count < 3)
                 {
+
                     releaseAfterPress = true;
                 }
             }
@@ -121,6 +134,7 @@ namespace DisSwitchTray
             ShowWindow(GetConsoleWindow(), SW_HIDE);
             FormClosing += TrayApp_FormClosing;
             Shown += Form1_Shown;
+            lastAction = DateTime.Now;
             
         }
 
