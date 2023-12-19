@@ -9,19 +9,11 @@ class Monitor
 public:
     std::string name;
     uint32_t state;
-    Monitor(const std::string& name, uint32_t state)
-        : name{ name }
-        , state{ state }
-    {
-
-    }
-    std::string toString() const
-    {
-        std::stringstream stream;
-        stream << "Name: " << name << " State: " << state;
-        return stream.str();
-    }
+    Monitor(const std::string& name, uint32_t state);
+    std::string toString() const;
 };
+
+
 using Monitors = std::vector<Monitor>;
 
 class CDSWrapper
@@ -30,10 +22,10 @@ private:
     Monitors monitors;
 public:
     /// <summary>
-    /// Retrieves a list of DEVMODE structures for all plugged in displays
+    /// Retrieves a list of display names and states for the plugged in displays
     /// </summary>
-    /// 
     CDSWrapper();
+
     /// <summary>
     /// extends desktop to the disconnected display at targetIndex
     /// </summary>
@@ -60,14 +52,30 @@ public:
     /// </summary>
     void printDisplayInfo() const;
 
+    /// <summary>
+    /// Sets the refresh rate of the display at index
+    /// </summary>
+    /// <param name="rate">Refresh rate in Hz</param>
+    void setRefreshRate(int32_t index, int32_t rate);
 
-    void setRefreshRate(int32_t targetIndex, int32_t rate);
+    /// <summary>
+    /// Gets the refresh rate in Hz of the display at index
+    /// </summary>
+    int32_t getRefreshRate(int32_t index);
 
-    int32_t getRefreshRate(int32_t targetIndex);
-
+    /// <summary>
+    /// Returns the display name and state of monitor at index
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
     const Monitor& getMonitor(int32_t index) const;
-
+    
+    /// <summary>
+    /// Prints DEVMODEA information for the given display name of a monitor
+    /// </summary>
     void printMonitor(const Monitor& monitor) const;
+private:
+    
     void printMonitor(const Monitor& monitor, const DEVMODEA& mode) const;
     void printDevMode(const DEVMODEA& mode) const;
 };

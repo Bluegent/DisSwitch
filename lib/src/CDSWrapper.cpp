@@ -4,6 +4,21 @@
 #include <assert.h>
 
 
+Monitor::Monitor(const std::string& name, uint32_t state)
+    : name{ name }
+    , state{ state }
+{
+
+}
+
+std::string Monitor::toString() const
+{
+    std::stringstream stream;
+    stream << "Name: " << name << " State: " << state;
+    return stream.str();
+}
+
+
 LONG setSettings(const std::string& name, DEVMODEA* devMode)
 {
     LONG result = ChangeDisplaySettingsExA(name.c_str(), devMode, NULL, (CDS_UPDATEREGISTRY | CDS_NORESET), NULL);
@@ -44,7 +59,7 @@ uint32_t CDSWrapper::extendDisplay(int32_t targetIndex, int32_t sourceIndex, int
 
 uint32_t CDSWrapper::getDisplayCount() const
 {
-    return monitors.size();
+    return static_cast<uint32_t>(monitors.size());
 }
 
 DEVMODEA CDSWrapper::getDevMode(const std::string& displayName)
