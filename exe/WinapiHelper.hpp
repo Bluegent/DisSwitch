@@ -14,4 +14,12 @@ public:
     void disconnect();
     void extend();
     bool isCorrectDisplayCount();
+private:
+    bool isInCloneMode();
+    bool display3ConnectedSDC();
+    bool display3ConnectedCDS();
+    bool display3Connected(bool useCDS = false);
+    int32_t getDisplay3Index();
+    void connectDisplay3();
+    
 };

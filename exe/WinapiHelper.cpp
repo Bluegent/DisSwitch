@@ -3,7 +3,122 @@
 
 const int32_t CorrectDisplayCount = 4;
 
-bool display3Connected(CDSWrapper& cdsw)
+void WinapiHelper::connectDisplay3()
+{
+    cdsw.printDisplayInfo();
+    if (display3Connected())
+    {
+        std::cout << "Display 3 already connected:\n";
+        cdsw.printMonitor(cdsw.getMonitor(3));
+    }
+    else
+    {
+        cdsw.extendDisplay(3, 1, -3840);
+    }
+}
+
+
+void WinapiHelper::list()
+{
+    cdsw.printDisplayInfo();
+    sdcw.print();
+}
+
+void WinapiHelper::clone()
+{
+    if (isInCloneMode())
+    {
+        std::cout << " Already in clone mode.\n";
+        return;
+    }
+    if (!display3Connected())
+    {
+        connectDisplay3();
+    }
+    sdcw.reload();
+    std::cout << "Cloning display 1 onto display 3 and setting refresh rate of both to 60...\n";
+    sdcw.clone(3, 1);
+    if (cdsw.getRefreshRate(1) != 60)
+    {
+        cdsw.setRefreshRate(1, 60);
+    }
+    cdsw.printDisplayInfo();
+    sdcw.reload();
+}
+
+void WinapiHelper::disconnect()
+{
+    int32_t disconnectTarget = 3;
+    std::cout << "Disconnecting display 3...\n";
+    if (isInCloneMode())
+    {
+        disconnectTarget = getDisplay3Index();
+        if (disconnectTarget == -1)
+        {
+            std::cerr << "Display 3 seems to not be connected or not in clone mode.\n";
+            return;
+        }
+    }
+    else if (!display3Connected())
+    {
+        std::cout << "Not in clone mode and display 3 is not connected.\n";
+        return;
+    }
+    sdcw.disconnect(disconnectTarget);
+    sdcw.reload();
+    cdsw.printDisplayInfo();
+}
+
+void WinapiHelper::extend()
+{
+    if (isInCloneMode())
+    {
+        std::cout << "In clone mode, disconnecting display 3...\n";
+        int32_t display3Index = getDisplay3Index();
+        if (display3Index == -1)
+        {
+            std::cerr << "Display 3 seems to not be connected or not in clone mode.\n";
+            return;
+        }
+        sdcw.disconnect(display3Index);
+    }
+    connectDisplay3();
+    sdcw.reload();
+    cdsw.printDisplayInfo();
+}
+
+bool WinapiHelper::isCorrectDisplayCount()
+{
+    return cdsw.getDisplayCount() == CorrectDisplayCount;
+}
+
+bool WinapiHelper::isInCloneMode()
+{
+    const auto& info = sdcw.getInfo();
+    //if only 3 displays are connected, you have 6 modes
+    if (info.modes.size() == 6)
+    {
+        return false;
+    }
+    //if only 7 modes are available, one display is a clone <- this seems like a strange exception I've only seen sometimes
+    if (info.modes.size() == 7)
+    {
+        return true;
+    }
+
+    // otherwise, mode 7 will have its type set to 0 instead of TARGET/SOURCE
+    return info.modes[7].infoType == 0 ? true : false;
+}
+
+bool WinapiHelper::display3ConnectedSDC()
+{
+    const auto& info = sdcw.getInfo();
+    // if there are 6 modes, that means either 3 monitors in extended mode 
+    // or unlikely cases like 2 monitors extended + 1 cloned which we don't care about
+    return info.modes.size() > 6;
+}
+
+bool WinapiHelper::display3ConnectedCDS()
 {
     try
     {
@@ -17,61 +132,19 @@ bool display3Connected(CDSWrapper& cdsw)
     }
 }
 
-bool isinCloneMode(const SDCWrapper& CDSWrapper)
+bool WinapiHelper::display3Connected(bool useCDS)
 {
-    const auto& info = CDSWrapper.getInfo();
-    if (info.modes.size() == 6)
-    {
-        return false;
-    }
-    if (info.modes.size() == 7)
-    {
-        return true;
-    }
-    return info.modes[7].infoType == 0 ? true : false;
+    // meh...
+    return useCDS ?
+        display3ConnectedCDS() :
+        display3ConnectedSDC();
 }
 
-void connectDisplay3(CDSWrapper& cdsw)
+int32_t WinapiHelper::getDisplay3Index()
 {
-    cdsw.printDisplayInfo();
-    if (display3Connected(cdsw))
-    {
-        std::cout << "Display 3 already connected:\n";
-        cdsw.printMonitor(cdsw.getMonitor(3));
-    }
-    else
-    {
-        cdsw.extendDisplay(3, 1, -3840);
-    }
-}
-
-void cloneDisplay3(SDCWrapper& sdcw, CDSWrapper& cdsw)
-{
-    if (isinCloneMode(sdcw))
-    {
-        std::cout << " Already in clone mode.\n";
-        return;
-    }
-    if (!display3Connected(cdsw))
-    {
-        connectDisplay3(cdsw);
-    }
-    sdcw.reload();
-    std::cout << "Cloning display 1 onto display 3 and setting refresh rate of both to 60...\n";
-    sdcw.clone(3, 1);
-    if (cdsw.getRefreshRate(1) != 60)
-    {
-        cdsw.setRefreshRate(1, 60);
-    }
-    cdsw.printDisplayInfo();
-    sdcw.reload();
-}
-
-int32_t getDisconnectTarget(SDCWrapper& CDSWrapper)
-{
-    //if we are in clone mode we have to look for the correct Id
+    // if we are in clone mode we have to look for the correct Id
     // idk how it works but usually the id's I've seen are 576** when a display is not cloned
-    const auto& info = CDSWrapper.getInfo();
+    const auto& info = sdcw.getInfo();
     for (size_t i = 0; i < info.paths.size(); ++i)
     {
         if (info.paths[i].targetInfo.id >= 60000)
@@ -80,61 +153,4 @@ int32_t getDisconnectTarget(SDCWrapper& CDSWrapper)
         }
     }
     return -1;
-}
-
-void disconnectDisplay3(SDCWrapper& sdcw, CDSWrapper& cdsw)
-{
-    int32_t disconnectTarget = 3;
-    std::cout << "Disconnecting display 3...\n";
-    if (isinCloneMode(sdcw))
-    {      
-        disconnectTarget = getDisconnectTarget(sdcw);        
-    }
-    else if (!display3Connected(cdsw))
-    {
-        std::cout << "Not in clone mode and display 3 is not connected.\n";
-        return;
-    }
-    sdcw.disconnect(disconnectTarget);
-    sdcw.reload();
-    cdsw.printDisplayInfo();
-}
-
-void extendDisplay3(SDCWrapper& sdcw, CDSWrapper& cdsw)
-{
-    if (isinCloneMode(sdcw))
-    {
-        std::cout << "In clone mode, disconnecting display 3...\n";
-        sdcw.disconnect(getDisconnectTarget(sdcw));
-    }
-    connectDisplay3(cdsw);
-    sdcw.reload();
-    cdsw.printDisplayInfo();
-}
-
-
-void WinapiHelper::list()
-{
-    cdsw.printDisplayInfo();
-    sdcw.print();
-}
-
-void WinapiHelper::clone()
-{
-    cloneDisplay3(sdcw, cdsw);
-}
-
-void WinapiHelper::disconnect()
-{
-    disconnectDisplay3(sdcw, cdsw);
-}
-
-void WinapiHelper::extend()
-{
-    extendDisplay3(sdcw, cdsw);
-}
-
-bool WinapiHelper::isCorrectDisplayCount()
-{
-    return cdsw.getDisplayCount() == CorrectDisplayCount;
 }
