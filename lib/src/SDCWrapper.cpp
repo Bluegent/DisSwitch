@@ -1,127 +1,52 @@
-#include "SDCWrapper.h"
-#include <iostream>
-#include <iomanip>  
-#include <assert.h>
+#include "SDCWrapper.hpp"
+#include "PrintHelper.hpp"
 
-
-LONG setSettings(const std::string& name, DEVMODEA* devMode)
+void printMode(const DISPLAYCONFIG_MODE_INFO& mode, const std::string& prefix)
 {
-    LONG result = ChangeDisplaySettingsExA(name.c_str(), devMode, NULL, (CDS_UPDATEREGISTRY | CDS_NORESET), NULL);
-    if (result != DISP_CHANGE_SUCCESSFUL)
+    printItem(prefix + ".mode.id", mode.id);
+    printItem(prefix + ".mode.src.h", mode.sourceMode.height);
+}
+
+void printPathInfo(const DISPLAYCONFIG_PATH_INFO& path, const Modes& modes)
+{
+    printItem("tar.id", path.targetInfo.id);
+    printItem("tar.mode", path.targetInfo.modeInfoIdx);
+    printItem("tar.ref", path.targetInfo.refreshRate.Numerator / path.targetInfo.refreshRate.Denominator);
+    printMode(modes[path.targetInfo.modeInfoIdx], "tar");
+    printItem("src.mode", path.sourceInfo.modeInfoIdx);
+    printMode(modes[path.sourceInfo.modeInfoIdx], "src");
+}
+
+int32_t SDCWrapper::clone(uint32_t target, uint32_t source)
+{
+    info.paths[3].flags |= DISPLAYCONFIG_PATH_ACTIVE;
+    info.paths[3].sourceInfo.modeInfoIdx = info.paths[1].sourceInfo.modeInfoIdx;   //same source
+    info.paths[3].sourceInfo.id = info.paths[1].sourceInfo.id;       //same source
+
+    LONG result = SetDisplayConfig(info.paths.size(), info.paths.data(), info.modes.size(), info.modes.data(), (SDC_APPLY | SDC_USE_SUPPLIED_DISPLAY_CONFIG | SDC_ALLOW_CHANGES | SDC_SAVE_TO_DATABASE));
+
+    if (result != ERROR_SUCCESS)
     {
-        std::cerr << "Error changing settings of " << name << " : " << result << '\n';
+        std::cerr << "Error setting display configuration. " << result << std::endl;
         return result;
     }
-    std::cout << "Successfully set settings for " << name << '\n';
-    ChangeDisplaySettingsEx(NULL, NULL, NULL, NULL, NULL);
-    return result;
+
+    std::cout << "Display configuration updated successfully." << std::endl;
+    return 0;
 }
 
-
-SDCWrapper::SDCWrapper()
-    : monitors{}
+int32_t SDCWrapper::disconnect(uint32_t target)
 {
-    int deviceIndex = 0;
-    DISPLAY_DEVICEA displayDevice;
-    displayDevice.cb = sizeof(DISPLAY_DEVICEA);
-    while (EnumDisplayDevicesA(NULL, deviceIndex, &displayDevice, 0))
+    info.paths[target].flags = 0;
+
+    LONG result = SetDisplayConfig(info.paths.size(), info.paths.data(), info.modes.size(), info.modes.data(), (SDC_APPLY | SDC_USE_SUPPLIED_DISPLAY_CONFIG | SDC_ALLOW_CHANGES | SDC_SAVE_TO_DATABASE));
+
+    if (result != ERROR_SUCCESS)
     {
-        monitors.emplace_back(Monitor(displayDevice.DeviceName, displayDevice.StateFlags));
-        deviceIndex++;
+        std::cerr << "Error setting display configuration. " << result << std::endl;
+        return result;
     }
-}
 
-uint32_t SDCWrapper::extendDisplay(int32_t targetIndex, int32_t sourceIndex, int32_t posX, int32_t posY)
-{
-    DEVMODEA targetMode = getDevMode(getMonitor(sourceIndex).name);
-
-    targetMode.dmSize = sizeof(DEVMODEA);
-    targetMode.dmPosition.x = posX;
-    targetMode.dmPosition.y = posY;
-    targetMode.dmFields = DM_POSITION | DM_PELSHEIGHT | DM_PELSWIDTH | DM_DISPLAYFLAGS;
-    return setSettings(getMonitor(targetIndex).name, &targetMode);
-}
-
-uint32_t SDCWrapper::getDisplayCount() const
-{
-    return monitors.size();
-}
-
-DEVMODEA SDCWrapper::getDevMode(const std::string& displayName)
-{
-    DEVMODEA devMode = {0};
-    devMode.dmSize = sizeof(DEVMODEA);
-
-    // Get the current display settings of the source monitor
-    if (!EnumDisplaySettingsA(displayName.c_str(), ENUM_CURRENT_SETTINGS, &devMode))
-    {
-        std::stringstream ss;      
-        ss << "Could not get devmode for monitor \"" << std::string(displayName) << "\"";
-        throw std::exception(ss.str().c_str());
-    }
-    return devMode;
-}
-
-void SDCWrapper::printDisplayInfo() const
-{
-    for (const auto& monitor : monitors)
-    {
-        try
-        {
-            printMonitor(monitor);
-        }
-        catch (std::exception e)
-        {
-            std::cerr << e.what() << '\n';
-        }
-    }
-}
-
-void SDCWrapper::setRefreshRate(int32_t targetIndex, int32_t rate)
-{
-    const Monitor& target = getMonitor(targetIndex);
-
-    DEVMODEA devmode = getDevMode(target.name);
-    devmode.dmDisplayFrequency = rate;
-    setSettings(target.name, &devmode);
-     
-}
-
-int32_t SDCWrapper::getRefreshRate(int32_t targetIndex)
-{
-    const Monitor& target = getMonitor(targetIndex);
-    DEVMODEA devmode = getDevMode(target.name);
-    return devmode.dmDisplayFrequency;
-}
-
-const Monitor& SDCWrapper::getMonitor(int32_t index) const
-{
-    if (index >= static_cast<int32_t>(monitors.size()) || index < 0)
-    {
-        std::stringstream ss;
-        ss << "Index " << index << " exceeds monitor count " << monitors.size();
-        std::cerr << ss.str() << '\n';
-        throw std::invalid_argument(ss.str().c_str());
-    }
-    return monitors[index];
-}
-
-void SDCWrapper::printDevMode(const DEVMODEA& devMode) const
-{
-    std::cout << " pos: {" << std::setw(5) << devMode.dmPosition.x << ":" << std::setw(5) << devMode.dmPosition.y << "}";
-    std::cout << " resolution: " << devMode.dmPelsWidth << " x " << devMode.dmPelsHeight;
-    std::cout << " refresh rate: " << std::setw(3) << devMode.dmDisplayFrequency;
-}
-
-void SDCWrapper::printMonitor(const Monitor & monitor) const
-{
-    printMonitor(monitor, getDevMode(monitor.name));
-}
-
-void SDCWrapper::printMonitor(const Monitor& monitor, const DEVMODEA& devMode) const
-{
-    std::cout << monitor.name;
-    printDevMode(devMode);
-    std::cout << " state: " << monitor.state;
-    std::cout << '\n';
+    std::cout << "Display configuration updated successfully." << std::endl;
+    return 0;
 }

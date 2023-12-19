@@ -1,13 +1,13 @@
 #pragma once
 
-#include <CDSWrapper.h>
-#include <SDCWrapper.h>
+#include <CDSWrapper.hpp>
+#include <SDCWrapper.hpp>
 
 class WinapiHelper
 {
 private:
-    CDSWrapper cds;
-    SDCWrapper sdc;
+    SDCWrapper cds;
+    CDSWrapper sdc;
 public:
     void list();
     void clone();

@@ -24,7 +24,7 @@ public:
 };
 using Monitors = std::vector<Monitor>;
 
-class SDCWrapper
+class CDSWrapper
 {
 private:
     Monitors monitors;
@@ -33,7 +33,7 @@ public:
     /// Retrieves a list of DEVMODE structures for all plugged in displays
     /// </summary>
     /// 
-    SDCWrapper();
+    CDSWrapper();
     /// <summary>
     /// extends desktop to the disconnected display at targetIndex
     /// </summary>

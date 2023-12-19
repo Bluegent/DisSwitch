@@ -3,7 +3,7 @@
 
 const int32_t CorrectDisplayCount = 4;
 
-bool display3Connected(SDCWrapper& sdc)
+bool display3Connected(CDSWrapper& sdc)
 {
     try
     {
@@ -17,9 +17,9 @@ bool display3Connected(SDCWrapper& sdc)
     }
 }
 
-bool isinCloneMode(const CDSWrapper& cds)
+bool isinCloneMode(const SDCWrapper& CDSWrapper)
 {
-    const auto& info = cds.getInfo();
+    const auto& info = CDSWrapper.getInfo();
     if (info.modes.size() == 6)
     {
         return false;
@@ -31,7 +31,7 @@ bool isinCloneMode(const CDSWrapper& cds)
     return info.modes[7].infoType == 0 ? true : false;
 }
 
-void connectDisplay3(SDCWrapper& sdc)
+void connectDisplay3(CDSWrapper& sdc)
 {
     sdc.printDisplayInfo();
     if (display3Connected(sdc))
@@ -45,7 +45,7 @@ void connectDisplay3(SDCWrapper& sdc)
     }
 }
 
-void cloneDisplay3(CDSWrapper& cds, SDCWrapper& sdc)
+void cloneDisplay3(SDCWrapper& cds, CDSWrapper& sdc)
 {
     if (isinCloneMode(cds))
     {
@@ -67,11 +67,11 @@ void cloneDisplay3(CDSWrapper& cds, SDCWrapper& sdc)
     cds.reload();
 }
 
-int32_t getDisconnectTarget(CDSWrapper& cds)
+int32_t getDisconnectTarget(SDCWrapper& CDSWrapper)
 {
     //if we are in clone mode we have to look for the correct Id
     // idk how it works but usually the id's I've seen are 576** when a display is not cloned
-    const auto& info = cds.getInfo();
+    const auto& info = CDSWrapper.getInfo();
     for (size_t i = 0; i < info.paths.size(); ++i)
     {
         if (info.paths[i].targetInfo.id >= 60000)
@@ -82,7 +82,7 @@ int32_t getDisconnectTarget(CDSWrapper& cds)
     return -1;
 }
 
-void disconnectDisplay3(CDSWrapper& cds, SDCWrapper& sdc)
+void disconnectDisplay3(SDCWrapper& cds, CDSWrapper& sdc)
 {
     int32_t disconnectTarget = 3;
     std::cout << "Disconnecting display 3...\n";
@@ -100,7 +100,7 @@ void disconnectDisplay3(CDSWrapper& cds, SDCWrapper& sdc)
     sdc.printDisplayInfo();
 }
 
-void extendDisplay3(CDSWrapper& cds, SDCWrapper& sdc)
+void extendDisplay3(SDCWrapper& cds, CDSWrapper& sdc)
 {
     if (isinCloneMode(cds))
     {

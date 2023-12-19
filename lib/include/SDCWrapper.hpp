@@ -70,12 +70,12 @@ struct DisplayInfo
 };
 
 
-class CDSWrapper
+class SDCWrapper
 {
 private:
     DisplayInfo info;
 public:
-    CDSWrapper()
+    SDCWrapper()
         : info(DisplayInfo::getCounts())
     {
     }

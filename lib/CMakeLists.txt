@@ -5,9 +5,9 @@ project(DisSwitchLib)
 file(GLOB_RECURSE PROJECT_SRC RELATIVE
         "${CMAKE_CURRENT_SOURCE_DIR}"
         include/*.cpp
-        include/*.h
+        include/*.hpp
         src/*.cpp
-        src/*.h
+        src/*.hpp
         )
 message("${PROJECT_NAME} Sources: ${PROJECT_SRC}")
 foreach(source IN LISTS PROJECT_SRC)
